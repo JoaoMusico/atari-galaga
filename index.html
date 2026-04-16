@@ -542,11 +542,13 @@
                             
                             if (enemies.length === 0) {
                                 wave++;
+                                if (wave === 6) lives++; // Extra life after wave 5
                                 enemySpeed = 1.0 + (wave * 0.08); // Reduced scaling
                                 waveCleanedTimer = 80;
                                 isEntering = true; // Lock shooting immediately
                                 player.bullets = [];
                                 enemyBullets = [];
+                                updateUI();
                                 setTimeout(() => {
                                     createEnemies();
                                     updateUI();
