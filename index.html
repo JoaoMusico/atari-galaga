@@ -215,6 +215,19 @@
             [0,0,0,1,1,1,1,1,1,1,0,0,0]
         ];
 
+        const ELITE_PIXELS = [
+            [0,0,0,1,0,0,0,1,0,0,0],
+            [0,1,1,1,1,1,1,1,1,1,0],
+            [1,1,1,1,1,2,1,1,1,1,1],
+            [1,1,1,0,0,2,0,0,1,1,1],
+            [1,1,1,1,1,2,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1],
+            [0,1,1,1,1,1,1,1,1,1,0],
+            [0,0,1,1,0,0,0,1,1,0,0],
+            [0,1,1,0,0,2,0,0,1,1,0],
+            [1,1,0,0,0,2,0,0,0,1,1]
+        ];
+
         let gameActive = false;
         let score = 0;
         let lives = 3;
@@ -342,11 +355,31 @@
             const types = [COLORS.enemy1, COLORS.enemy2, COLORS.enemy3];
             let color = types[enemy.type] || COLORS.enemy1;
             
-            if (enemy.isElite) color = '#ff0000'; // Elites are Red
-
             const bounce = Math.sin(frames * 0.1 + enemy.animOffset) * 2;
             const ex = enemy.x;
             const ey = enemy.y + (isEntering ? 0 : bounce);
+
+            if (enemy.isElite) {
+                const pSize = 2.5;
+                const eX = ex + (32 - (11 * pSize)) / 2;
+                const eY = ey;
+                
+                for (let y = 0; y < ELITE_PIXELS.length; y++) {
+                    for (let x = 0; x < ELITE_PIXELS[y].length; x++) {
+                        const pixel = ELITE_PIXELS[y][x];
+                        if (pixel === 0) continue;
+
+                        if (enemy.hitTimer > 0) {
+                            ctx.fillStyle = '#fff';
+                        } else {
+                            ctx.fillStyle = (pixel === 1) ? '#E75545' : '#42A5F5';
+                        }
+                        
+                        ctx.fillRect(eX + x * pSize, eY + y * pSize, pSize, pSize);
+                    }
+                }
+                return;
+            }
             
             if (enemy.hitTimer > 0) {
                 ctx.fillStyle = '#fff';
