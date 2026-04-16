@@ -455,11 +455,11 @@
                         e.x = e.tx; e.y = e.ty;
                     }
                 });
-                if (allIn) isEntering = false;
+                if (allIn && enemies.length > 0) isEntering = false;
             }
 
             let shootCooldown = buffs.rapidFire > 0 ? 8 : 18;
-            if (keys['Space'] && !isEntering && frames % shootCooldown === 0) {
+            if (keys['Space'] && !isEntering && waveCleanedTimer <= 0 && frames % shootCooldown === 0) {
                 if (buffs.tripleShot > 0) {
                     player.bullets.push({ x: player.x + player.width / 2 - 20, y: player.y + 10, w: 4, h: 20 });
                     player.bullets.push({ x: player.x + player.width / 2 - 2, y: player.y, w: 4, h: 20 });
