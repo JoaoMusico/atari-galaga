@@ -272,9 +272,9 @@
             if (wave === 2) formation = 'V_SHAPE';
             else if (wave >= 3) formation = formations[Math.floor(Math.random() * formations.length)];
 
-            // Wave 1 starts minimal: 1 row, 3 cols
-            const rows = wave === 1 ? 1 : Math.min(3 + Math.floor(wave / 2), 6);
-            const cols = wave === 1 ? 3 : Math.min(5 + (wave % 2 === 0 ? wave : wave - 1), 11);
+            // Smoother scaling for rows and columns
+            const rows = wave === 1 ? 1 : Math.min(2 + Math.floor(wave / 4), 5);
+            const cols = wave === 1 ? 3 : Math.min(3 + wave, 9);
             
             const totalWidth = cols * 55;
             const startX = (WIDTH - totalWidth) / 2 + 10;
@@ -302,7 +302,9 @@
                     else if (side === 1) { startXPos = WIDTH + 50; startYPos = Math.random() * 300; }
                     else { startXPos = Math.random() * WIDTH; startYPos = -100; }
 
-                    const isElite = (wave >= 5 && r === 0);
+                    // Only alternate enemies in the top row are Elite starting at wave 5
+                    const isElite = (wave >= 5 && r === 0 && c % 2 === 0);
+
                     enemies.push({
                         x: startXPos, y: startYPos, tx: targetX, ty: targetY,
                         width: 32, height: 24, type: r % 3,
@@ -540,7 +542,7 @@
                             
                             if (enemies.length === 0) {
                                 wave++;
-                                enemySpeed = 1.0 + (wave * 0.12);
+                                enemySpeed = 1.0 + (wave * 0.08); // Reduced scaling
                                 waveCleanedTimer = 80;
                                 isEntering = true; // Lock shooting immediately
                                 player.bullets = [];
