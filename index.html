@@ -256,7 +256,8 @@
         // Player Buffs
         let buffs = {
             rapidFire: 0,
-            dualShot: 0
+            dualShot: 0,
+            tripleShot: 0
         };
 
         window.addEventListener('keydown', e => keys[e.code] = true);
@@ -319,17 +320,24 @@
                     });
                 }
             }
-            // Ensure at least some enemies spawn (fallback)
             if (enemies.length === 0) {
                 enemies.push({ x: WIDTH/2, y: -50, tx: WIDTH/2, ty: 100, width: 32, height: 24, type: 0, health: 1, isElite: false, hitTimer: 0, animOffset: 0 });
             }
         }
 
-        function spawnPowerUp(x, y) {
-            if (Math.random() > 0.1) return; // 10% drop chance
+        function spawnPowerUp(x, y, isElite) {
+            let type = '';
+            let chance = isElite ? 0.25 : 0.10;
+            
+            if (Math.random() > chance) return;
 
-            const types = ['SPEED', 'DUAL'];
-            const type = types[Math.floor(Math.random() * types.length)];
+            if (isElite) {
+                type = 'TRIPLE';
+            } else {
+                const types = ['SPEED', 'DUAL'];
+                type = types[Math.floor(Math.random() * types.length)];
+            }
+
             powerUps.push({
                 x, y,
                 width: 25,
@@ -359,6 +367,7 @@
             
             if (buffs.rapidFire > 0) ctx.shadowColor = '#ffff00';
             if (buffs.dualShot > 0) ctx.shadowColor = '#00ff00';
+            if (buffs.tripleShot > 0) ctx.shadowColor = '#00ffff';
 
             for (let y = 0; y < SHIP_PIXELS.length; y++) {
                 for (let x = 0; x < SHIP_PIXELS[y].length; x++) {
@@ -435,6 +444,7 @@
 
             if (buffs.rapidFire > 0) buffs.rapidFire--;
             if (buffs.dualShot > 0) buffs.dualShot--;
+            if (buffs.tripleShot > 0) buffs.tripleShot--;
             if (waveCleanedTimer > 0) waveCleanedTimer--;
 
             if (keys['ArrowLeft'] && player.x > 10) player.x -= player.speed;
@@ -458,8 +468,12 @@
             }
 
             let shootCooldown = buffs.rapidFire > 0 ? 8 : 18;
-            if (keys['Space'] && frames % shootCooldown === 0) {
-                if (buffs.dualShot > 0) {
+            if (keys['Space'] && !isEntering && frames % shootCooldown === 0) {
+                if (buffs.tripleShot > 0) {
+                    player.bullets.push({ x: player.x + player.width / 2 - 20, y: player.y + 10, w: 4, h: 20 });
+                    player.bullets.push({ x: player.x + player.width / 2 - 2, y: player.y, w: 4, h: 20 });
+                    player.bullets.push({ x: player.x + player.width / 2 + 16, y: player.y + 10, w: 4, h: 20 });
+                } else if (buffs.dualShot > 0) {
                     player.bullets.push({ x: player.x + 10, y: player.y, w: 4, h: 20 });
                     player.bullets.push({ x: player.x + player.width - 14, y: player.y, w: 4, h: 20 });
                 } else {
@@ -478,6 +492,7 @@
                 if (p.x < player.x + player.width && p.x + p.width > player.x && p.y < player.y + player.height && p.y + p.height > player.y) {
                     if (p.type === 'SPEED') buffs.rapidFire = 400;
                     if (p.type === 'DUAL') buffs.dualShot = 400;
+                    if (p.type === 'TRIPLE') buffs.tripleShot = 400;
                     powerUps.splice(i, 1);
                 }
             });
@@ -527,7 +542,7 @@
                         score += 50;
 
                         if (e.health <= 0) {
-                            spawnPowerUp(e.x, e.y);
+                            spawnPowerUp(e.x, e.y, e.isElite);
                             enemies.splice(ei, 1);
                             score += e.isElite ? 200 : 50;
                             updateUI();
@@ -571,7 +586,9 @@
             enemies.forEach(drawEnemy);
 
             powerUps.forEach(p => {
-                ctx.fillStyle = p.type === 'SPEED' ? '#ffff00' : '#00ff00';
+                if (p.type === 'SPEED') ctx.fillStyle = '#ffff00';
+                else if (p.type === 'DUAL') ctx.fillStyle = '#00ff00';
+                else ctx.fillStyle = '#00ffff';
                 ctx.shadowBlur = 15;
                 ctx.shadowColor = ctx.fillStyle;
                 ctx.beginPath();
@@ -618,12 +635,17 @@
             if (buffs.rapidFire > 0) {
                 ctx.fillStyle = '#ffff00';
                 ctx.font = '10px "Press Start 2P"';
-                ctx.fillText('RAPID FIRE', WIDTH - 150, HEIGHT - 20);
+                ctx.fillText('RAPID FIRE', WIDTH - 180, HEIGHT - 20);
             }
             if (buffs.dualShot > 0) {
                 ctx.fillStyle = '#00ff00';
                 ctx.font = '10px "Press Start 2P"';
-                ctx.fillText('DUAL SHOT', WIDTH - 150, HEIGHT - 40);
+                ctx.fillText('DUAL SHOT', WIDTH - 180, HEIGHT - 40);
+            }
+            if (buffs.tripleShot > 0) {
+                ctx.fillStyle = '#00ffff';
+                ctx.font = '10px "Press Start 2P"';
+                ctx.fillText('TRIPLE SHOT', WIDTH - 180, HEIGHT - 60);
             }
         }
 
@@ -646,7 +668,7 @@
             score = 0; lives = 3; wave = 1; enemySpeed = 1.0;
             player.x = WIDTH / 2 - player.width / 2;
             powerUps = [];
-            buffs = { rapidFire: 0, dualShot: 0 };
+            buffs = { rapidFire: 0, dualShot: 0, tripleShot: 0 };
             createEnemies();
             updateUI();
             startScreen.classList.add('hidden');
