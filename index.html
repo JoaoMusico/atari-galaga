@@ -542,6 +542,7 @@
                                 wave++;
                                 enemySpeed = 1.0 + (wave * 0.12);
                                 waveCleanedTimer = 80;
+                                isEntering = true; // Lock shooting immediately
                                 player.bullets = [];
                                 enemyBullets = [];
                                 setTimeout(() => {
