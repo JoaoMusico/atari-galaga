@@ -233,9 +233,16 @@
 
         let enemies = [];
         let enemyBullets = [];
+        let powerUps = [];
         let enemyDirection = 1;
         let enemySpeed = 1.0;
         let particles = [];
+
+        // Player Buffs
+        let buffs = {
+            rapidFire: 0,
+            dualShot: 0
+        };
 
         window.addEventListener('keydown', e => keys[e.code] = true);
         window.addEventListener('keyup', e => keys[e.code] = false);
@@ -261,6 +268,20 @@
             }
         }
 
+        function spawnPowerUp(x, y) {
+            if (Math.random() > 0.1) return; // 10% drop chance
+
+            const types = ['SPEED', 'DUAL'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            powerUps.push({
+                x, y,
+                width: 25,
+                height: 25,
+                type: type,
+                speed: 2
+            });
+        }
+
         function spawnParticles(x, y, color) {
             for (let i = 0; i < 15; i++) {
                 particles.push({
@@ -278,6 +299,10 @@
             const pSize = 4;
             ctx.shadowBlur = 10;
             ctx.shadowColor = COLORS.playerAccent;
+            
+            // Effect when buffs are active
+            if (buffs.rapidFire > 0) ctx.shadowColor = '#ffff00';
+            if (buffs.dualShot > 0) ctx.shadowColor = '#00ff00';
 
             for (let y = 0; y < SHIP_PIXELS.length; y++) {
                 for (let x = 0; x < SHIP_PIXELS[y].length; x++) {
@@ -324,16 +349,40 @@
             if (!gameActive) return;
             frames++;
 
+            // Handle Buff Timers
+            if (buffs.rapidFire > 0) buffs.rapidFire--;
+            if (buffs.dualShot > 0) buffs.dualShot--;
+
             if (keys['ArrowLeft'] && player.x > 10) player.x -= player.speed;
             if (keys['ArrowRight'] && player.x < WIDTH - player.width - 10) player.x += player.speed;
 
-            if (keys['Space'] && frames % 18 === 0) {
-                player.bullets.push({ x: player.x + player.width / 2 - 2, y: player.y, w: 4, h: 20 });
+            // Shooting with Buffs
+            let shootCooldown = buffs.rapidFire > 0 ? 8 : 18;
+            if (keys['Space'] && frames % shootCooldown === 0) {
+                if (buffs.dualShot > 0) {
+                    player.bullets.push({ x: player.x + 10, y: player.y, w: 4, h: 20 });
+                    player.bullets.push({ x: player.x + player.width - 14, y: player.y, w: 4, h: 20 });
+                } else {
+                    player.bullets.push({ x: player.x + player.width / 2 - 2, y: player.y, w: 4, h: 20 });
+                }
             }
 
             player.bullets.forEach((b, i) => {
                 b.y -= 9;
                 if (b.y < -20) player.bullets.splice(i, 1);
+            });
+
+            // Update Power-ups
+            powerUps.forEach((p, i) => {
+                p.y += p.speed;
+                if (p.y > HEIGHT) powerUps.splice(i, 1);
+
+                // Collision with player
+                if (p.x < player.x + player.width && p.x + p.width > player.x && p.y < player.y + player.height && p.y + p.height > player.y) {
+                    if (p.type === 'SPEED') buffs.rapidFire = 400;
+                    if (p.type === 'DUAL') buffs.dualShot = 400;
+                    powerUps.splice(i, 1);
+                }
             });
 
             let hitEdge = false;
@@ -371,6 +420,7 @@
                     if (pb.x < e.x + e.width && pb.x + pb.w > e.x && pb.y < e.y + e.height && pb.y + pb.h > e.y) {
                         const colors = [COLORS.enemy1, COLORS.enemy2, COLORS.enemy3];
                         spawnParticles(e.x + e.width / 2, e.y + e.height / 2, colors[e.type]);
+                        spawnPowerUp(e.x, e.y); // Chance to drop buff
                         enemies.splice(ei, 1);
                         player.bullets.splice(pbi, 1);
                         score += 60 + (4 - e.type) * 15;
@@ -408,6 +458,22 @@
             drawShip(player.x, player.y);
             enemies.forEach(drawEnemy);
 
+            // Draw Power-ups
+            powerUps.forEach(p => {
+                ctx.fillStyle = p.type === 'SPEED' ? '#ffff00' : '#00ff00';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = ctx.fillStyle;
+                
+                ctx.beginPath();
+                ctx.arc(p.x + 12, p.y + 12, 10, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#000';
+                ctx.font = '10px "Press Start 2P"';
+                ctx.fillText(p.type[0], p.x + 7, p.y + 17);
+                ctx.shadowBlur = 0;
+            });
+
             ctx.fillStyle = COLORS.bullet;
             ctx.shadowBlur = 10;
             ctx.shadowColor = '#fff';
@@ -426,6 +492,18 @@
             });
             ctx.globalAlpha = 1.0;
             ctx.shadowBlur = 0;
+
+            // Buff UI Indicators
+            if (buffs.rapidFire > 0) {
+                ctx.fillStyle = '#ffff00';
+                ctx.font = '10px "Press Start 2P"';
+                ctx.fillText('RAPID FIRE', WIDTH - 150, HEIGHT - 20);
+            }
+            if (buffs.dualShot > 0) {
+                ctx.fillStyle = '#00ff00';
+                ctx.font = '10px "Press Start 2P"';
+                ctx.fillText('DUAL SHOT', WIDTH - 150, HEIGHT - 40);
+            }
         }
 
         function updateUI() {
@@ -446,6 +524,8 @@
             gameActive = true;
             score = 0; lives = 3; wave = 1; enemySpeed = 1.0;
             player.x = WIDTH / 2 - player.width / 2;
+            powerUps = [];
+            buffs = { rapidFire: 0, dualShot: 0 };
             createEnemies();
             updateUI();
             startScreen.classList.add('hidden');
