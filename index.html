@@ -221,6 +221,7 @@
         let wave = 1;
         let keys = {};
         let frames = 0;
+        let isEntering = false;
 
         const player = {
             width: 52,
@@ -249,6 +250,7 @@
 
         function createEnemies() {
             enemies = [];
+            isEntering = true;
             const rows = Math.min(2 + Math.floor(wave / 2), 6);
             const cols = Math.min(3 + wave, 9);
             const totalWidth = cols * 55;
@@ -256,9 +258,20 @@
             
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
+                    const targetX = startX + c * 55;
+                    const targetY = 80 + r * 50;
+                    
+                    const side = Math.floor(Math.random() * 3);
+                    let startXPos, startYPos;
+                    if (side === 0) { startXPos = -50; startYPos = Math.random() * 300; }
+                    else if (side === 1) { startXPos = WIDTH + 50; startYPos = Math.random() * 300; }
+                    else { startXPos = Math.random() * WIDTH; startYPos = -100; }
+
                     enemies.push({
-                        x: startX + c * 55,
-                        y: 80 + r * 50,
+                        x: startXPos,
+                        y: startYPos,
+                        tx: targetX,
+                        ty: targetY,
                         width: 32,
                         height: 24,
                         type: r % 3,
@@ -325,7 +338,7 @@
             
             const bounce = Math.sin(frames * 0.1 + enemy.animOffset) * 2;
             const ex = enemy.x;
-            const ey = enemy.y + bounce;
+            const ey = enemy.y + (isEntering ? 0 : bounce);
             
             ctx.shadowBlur = 10;
             ctx.shadowColor = color;
@@ -355,6 +368,27 @@
 
             if (keys['ArrowLeft'] && player.x > 10) player.x -= player.speed;
             if (keys['ArrowRight'] && player.x < WIDTH - player.width - 10) player.x += player.speed;
+
+            // Handle Entry Animation
+            if (isEntering) {
+                let allIn = true;
+                enemies.forEach(e => {
+                    const dx = e.tx - e.x;
+                    const dy = e.ty - e.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 2) {
+                        e.x += dx * 0.08;
+                        e.y += dy * 0.08;
+                        allIn = false;
+                    } else {
+                        e.x = e.tx;
+                        e.y = e.ty;
+                    }
+                });
+                if (allIn) isEntering = false;
+                return;
+            }
 
             // Shooting with Buffs
             let shootCooldown = buffs.rapidFire > 0 ? 8 : 18;
@@ -389,6 +423,8 @@
             enemies.forEach(e => {
                 e.x += enemyDirection * enemySpeed;
                 if (e.x + e.width > WIDTH - 10 || e.x < 10) hitEdge = true;
+                e.tx = e.x;
+                e.ty = e.y;
             });
 
             if (hitEdge) {
